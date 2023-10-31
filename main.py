@@ -61,19 +61,19 @@ def log(logs: list, env: simpy.Environment, mc: int, T: float, delta_t: float, q
         mclogs.append((mc, k, env.now, len(q.queue)+q.count))
         yield env.timeout(delta_t)
 
-MC=100
+MC=500
 T=100.0
 lam=20.0
-mu=2.0
+mu=30.0
 Q0=100
 delta_t = 1.0
-eta = 1.0
+eta = 0.2
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     npr.seed(1)
     interarrival_time = partial(exponential_time, lam)
-    service_time = partial(exponential_time, mu)
+    service_time = partial(exponential_time, mu*eta)
 
     run_simulations(MC, T, Q0, interarrival_time, service_time)
 
@@ -94,14 +94,18 @@ if __name__ == '__main__':
     print(np.var(mu_hats))
     print(np.std(mu_hats))
 
-    plt.hist(mu_hats)
-    plt.title('Distribution of Service Rate Estimate')
-    plt.show()
-    plt.scatter(t_ests, mu_hats)
-    tmin, tmax = np.min(t_ests), np.max(t_ests)
-    plt.hlines(mu, tmin, tmax)
-    plt.xlabel('Time range t_2 - t_1')
-    plt.ylabel('Rate estimate mu_hat')
+    fig, (p1, p2) = plt.subplots(1, 2)
+    p1.hist(mu_hats, bins=20)
+    p1.set_title('Distribution of Service Rate Estimate')
+    p1.axvline(mu, color='red')
+    p1.axvline(lam, color='green')
+    p2.scatter(t_ests, mu_hats)
+    p2.axhline(mu, color='red')
+    p2.axhline(lam, color='green')
+    p2.set_title(f'Rate estimate for mu={mu}')
+    p2.set_xlabel('Time range t_2 - t_1')
+    p2.set_ylabel('Rate estimate mu_hat')
+    plt.tight_layout()
     plt.show()
 
 
