@@ -1,7 +1,9 @@
 import simpy
 from typing import Callable
 from functools import partial
+import numpy as np
 import numpy.random as npr
+import matplotlib.pyplot as plt
 
 
 def print_hi(name):
@@ -17,7 +19,7 @@ def service(env: simpy.Environment, q: simpy.Resource, reqno: int, stime: float)
     with q.request() as request:
         yield request
         yield env.timeout(stime)
-        print(f'stime: {reqno} {stime} {env.now}')
+        # print(f'stime: {reqno} {stime} {env.now}')
 
 
 def arrival_process(env: simpy.Environment, q: simpy.Resource, Q0:int, arrival_time: Callable, service_time: Callable):
@@ -28,11 +30,11 @@ def arrival_process(env: simpy.Environment, q: simpy.Resource, Q0:int, arrival_t
         reqno += 1
         yield env.timeout(atime)
         env.process(service(env, q, reqno, stime))
-        print(f'arrival: {reqno} {atime} {env.now}')
+        # print(f'arrival: {reqno} {atime} {env.now}')
 
 
 def run_simulation(mc: int, T:float, Q0:int, interarrival_time: Callable, service_time: Callable):
-    print(f'iteration: {mc}')
+    # print(f'iteration: {mc}')
     env = simpy.Environment()
     q = simpy.Resource(env, 1)
     for reqno in range(Q0):
@@ -53,16 +55,19 @@ logs = list()
 
 def log(logs: list, env: simpy.Environment, mc: int, T: float, delta_t: float, q: simpy.Resource):
     K = int(T / delta_t) + 1
+    mclogs = list()
+    logs.append(mclogs)
     for k in range(K):
-        logs.append((mc, k, env.now, len(q.queue)+q.count))
+        mclogs.append((mc, k, env.now, len(q.queue)+q.count))
         yield env.timeout(delta_t)
 
-MC=1
-T=12.0
-lam=2.0
+MC=100
+T=100.0
+lam=20.0
 mu=2.0
-Q0=10
+Q0=100
 delta_t = 1.0
+eta = 1.0
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -71,7 +76,36 @@ if __name__ == '__main__':
     service_time = partial(exponential_time, mu)
 
     run_simulations(MC, T, Q0, interarrival_time, service_time)
-    for line in logs:
-        print(line)
+
+    mu_hats = list()
+    t_ests = list()
+    for mc in range(MC):
+        mclogs = logs[mc]
+        K = len(mclogs)
+        k1, k2 = sorted(npr.choice(K, 2, replace=False))
+        l1, l2 = mclogs[k1], mclogs[k2]
+        q1, q2 = l1[3], l2[3]
+        t1, t2 = l1[2], l2[2]
+        t_est = t2 - t1
+        mu_hat = -1.0/(eta*(t_est))*(q2-q1-lam*(t_est))
+        mu_hats.append(mu_hat)
+        t_ests.append(t_est)
+    print(np.mean(mu_hats))
+    print(np.var(mu_hats))
+    print(np.std(mu_hats))
+
+    plt.hist(mu_hats)
+    plt.title('Distribution of Service Rate Estimate')
+    plt.show()
+    plt.scatter(t_ests, mu_hats)
+    tmin, tmax = np.min(t_ests), np.max(t_ests)
+    plt.hlines(mu, tmin, tmax)
+    plt.xlabel('Time range t_2 - t_1')
+    plt.ylabel('Rate estimate mu_hat')
+    plt.show()
+
+
+
+
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
