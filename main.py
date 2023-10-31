@@ -39,6 +39,7 @@ def run_simulation(mc: int, T:float, Q0:int, interarrival_time: Callable, servic
         stime = service_time()
         env.process(service(env, q, reqno, stime))
     env.process(arrival_process(env, q, Q0, interarrival_time, service_time))
+    env.process(log(logs, env, mc, T, delta_t, q))
     env.run(T)
 
 
@@ -47,11 +48,21 @@ def run_simulations(MC: int, T:float, Q0:int, interarrival_time: Callable, servi
         run_simulation(mc, T, Q0, interarrival_time, service_time)
 
 
+logs = list()
+
+
+def log(logs: list, env: simpy.Environment, mc: int, T: float, delta_t: float, q: simpy.Resource):
+    K = int(T / delta_t) + 1
+    for k in range(K):
+        logs.append((mc, k, env.now, len(q.queue)+q.count))
+        yield env.timeout(delta_t)
+
 MC=1
-T=1.0
+T=12.0
 lam=2.0
-mu=5.0
+mu=2.0
 Q0=10
+delta_t = 1.0
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -60,5 +71,7 @@ if __name__ == '__main__':
     service_time = partial(exponential_time, mu)
 
     run_simulations(MC, T, Q0, interarrival_time, service_time)
+    for line in logs:
+        print(line)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
