@@ -4,6 +4,7 @@ from functools import partial
 import numpy as np
 import numpy.random as npr
 import matplotlib.pyplot as plt
+import tomli
 
 
 def print_hi(name):
@@ -61,17 +62,21 @@ def log(logs: list, env: simpy.Environment, mc: int, T: float, delta_t: float, q
         mclogs.append((mc, k, env.now, len(q.queue)+q.count))
         yield env.timeout(delta_t)
 
-MC=500
-T=100.0
-lam=20.0
-mu=30.0
-Q0=100
-delta_t = 1.0
-eta = 0.2
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    MC = 100
     npr.seed(1)
+    with open("queue-params-example.toml", "rb") as f:
+        queue_params = tomli.load(f)
+        Q0 = queue_params['Q0']
+        lam = queue_params['lam']
+        mu = queue_params['mu']
+        T = queue_params['T']
+    with open("queue-controls-example.toml", "rb") as f:
+        queue_controls = tomli.load(f)
+        delta_t = queue_controls['delta_t']
+        eta = queue_controls['eta']
+
     interarrival_time = partial(exponential_time, lam)
     service_time = partial(exponential_time, mu*eta)
 

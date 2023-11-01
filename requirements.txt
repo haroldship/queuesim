@@ -2,3 +2,5 @@ simpy
 numpy
 pandas
 matplotlib
+tomli
+tomli-w
