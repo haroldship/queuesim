@@ -70,7 +70,7 @@ if __name__ == '__main__':
         lam = queue_params['lam']
         mu = queue_params['mu']
         T = queue_params['T']
-        
+
     with open(controls_filename, "rb") as f:
         queue_controls = tomli.load(f)
         delta_t = queue_controls['delta_t']
@@ -88,12 +88,35 @@ if __name__ == '__main__':
     out_dir = 'output'
     os.makedirs(out_dir, exist_ok=True)
 
-    out_filename = f'{out_dir}/mu-{mu}--lam-{lam}--Q0-{Q0}--T-{T}--delta_t-{delta_t}--eta-{eta}.csv'
+    log_filename = f'{out_dir}/logs--mu-{mu}--lam-{lam}--Q0-{Q0}--T-{T}--delta_t-{delta_t}--eta-{eta}.csv'
     log_list = [log for mclogs in logs for log in mclogs]
-    log_df = pd.DataFrame(data=log_list, columns=('mc', 'k', 't_k', 'Q_k'))
-    log_df.to_csv(out_filename, index=False)
+    logs_df = pd.DataFrame(data=log_list, columns=('mc', 'k', 't_k', 'Q_k'))
+    logs_df.to_csv(log_filename, index=False)
+    print(f'Logs saved to {log_filename}')
 
-    print(f'Results saved to {out_filename}')
+    mu_hats = list()
+    t_ests = list()
+
+    mc_df = logs_df.groupby('mc')
+
+    for mc, log_df in mc_df:
+        for i1, l1 in log_df.iterrows():
+            k1 = l1['k']
+            t1 = l1['t_k']
+            q1 = l1['Q_k']
+            for i2, l2 in log_df.loc[(log_df['k'] > k1)].iterrows():
+                k2 = l2['k']
+                t2 = l2['t_k']
+                q2 = l2['Q_k']
+                t_est = t2 - t1
+                mu_hat = -1.0/(eta*(t_est))*(q2-q1-lam*(t_est))
+                mu_hats.append(mu_hat)
+                t_ests.append(t_est)
+
+    ests_df = pd.DataFrame({'mu_hat': mu_hats, 'delta_t': t_ests})
+    ests_filename = f'{out_dir}/ests--mu-{mu}--lam-{lam}--Q0-{Q0}--T-{T}--delta_t-{delta_t}--eta-{eta}.csv'
+    ests_df.to_csv(ests_filename, index=False)
+    print(f'Estimates saved to {ests_filename}')
 
     # mu_hats = list()
     # t_ests = list()
@@ -128,8 +151,3 @@ if __name__ == '__main__':
     # plt.tight_layout()
     # plt.show()
 
-
-
-
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

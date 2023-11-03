@@ -6,5 +6,7 @@ misc.xml
 profiles_settings.xml
 modules.xml
 *.iml
-.idea/
-output/
+/.idea/
+/output/
+/plots/
+.DS_Store
